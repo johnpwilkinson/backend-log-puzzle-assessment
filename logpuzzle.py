@@ -19,15 +19,33 @@ import re
 import sys
 import urllib.request
 import argparse
+import shutil
 
+def get_terminal_columns():
+    return shutil.get_terminal_size().columns
 
 def read_urls(filename):
     """Returns a list of the puzzle URLs from the given log file,
     extracting the hostname from the filename itself, sorting
     alphabetically in increasing order, and screening out duplicates.
     """
-    # +++your code here+++
-    pass
+    # exatracts host_name from file_name
+    host = filename[re.search(r"_(.*?)", filename).span()[1]:]
+    urlz = []
+    # 
+    with open(filename, "r") as f:
+        for line in f:
+            matches = re.findall(r'GET \S+ HTTP', line)
+            # gets the urls that have 'puzzle' in them and are unique
+            for match in matches:
+                if match[5:-5] not in urlz and "puzzle" in match:
+                    urlz.append(match[5:-5])
+            # sorts alphabetically
+            urlz.sort(key=lambda x: x[-8:-4])
+            
+    urlz = list(map(lambda each: "http://"+host + "/" + each, urlz))
+    return urlz
+
 
 
 def download_images(img_urls, dest_dir):
@@ -38,8 +56,29 @@ def download_images(img_urls, dest_dir):
     to show each local image file.
     Creates the directory if necessary.
     """
-    # +++your code here+++
-    pass
+    # container for images
+    res_list = []
+    # if dest_dir doesnt exist, then make it
+    if not os.path.isdir(dest_dir):
+        os.makedirs(dest_dir)
+        # using enumerate to give each url an index
+    for i, each in enumerate(img_urls):
+        print(f"Downloading image {i+1} of {len(img_urls)}")
+        # sets file name for each, retrieves and added file with name convention to list
+        file_name = dest_dir + "/img" + str(i) + each[-4:]
+        urllib.request.urlretrieve(each, file_name)
+        res_list.append("img" + str(i) + each[-4:])
+        # opens your destination dir and appends an <img> tag for corresponding img url
+    with open(dest_dir + "/index.html", 'a') as f:
+        f.write('<html><body>\n')
+        for url in res_list:
+            f.write(f'<img src={url}>')
+        f.write("</body></html>")
+        # prints output to the width of the console with instructions for user
+    width = get_terminal_columns()
+    print("/" * width)
+    print(f"check out {dest_dir} and open index.html in chrome to see the image".center(width))
+    print("/" * width)
 
 
 def create_parser():
